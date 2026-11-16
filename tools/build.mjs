@@ -1,6 +1,6 @@
 // Bundles src/main.js + data/ into a single self-contained bahrain.html (opens by double-click).
 import { build } from 'esbuild';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, rmSync } from 'node:fs';
 const root = new URL('..', import.meta.url).pathname;
 const b64 = (f, mime) => `data:${mime};base64,` + readFileSync(root + 'data/' + f).toString('base64');
 const out = await build({ entryPoints: [root + 'src/entry.js'], bundle: true, minify: true, format: 'iife', write: false, target: 'es2020' });
@@ -17,4 +17,14 @@ writeFileSync(root + 'bahrain.body.html', page(Object.fromEntries(Object.entries
 // local variant: everything inlined so the file opens by double-click
 const body = page(Object.fromEntries(Object.entries(CITY).map(([k, [f, m]]) => [k, b64('city/' + f, m)])));
 writeFileSync(root + 'bahrain.html', `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n<style>body{margin:0}[hidden]{display:none!important}</style>\n</head>\n<body>\n${body}</body>\n</html>\n`);
+// hosted variant (Vercel etc.): dist/index.html with every asset as a separate file
+const dist = root + 'dist/';
+rmSync(dist, { recursive: true, force: true }); mkdirSync(dist + 'city', { recursive: true });
+for (const f of ['imagery.jpg', 'water.png', 'height.png']) copyFileSync(root + 'data/' + f, dist + f);
+for (const [f] of Object.values(CITY)) copyFileSync(root + 'data/city/' + f, dist + 'city/' + f);
+const hosted = readFileSync(root + 'src/page.html', 'utf8')
+  + `\n<script>window.__ASSETS__=${JSON.stringify({ bounds: assets.bounds, imagery: 'imagery.jpg', water: 'water.png', height: 'height.png', city: Object.fromEntries(Object.entries(CITY).map(([k, [f]]) => [k, 'city/' + f])) })};</script>\n<script src="app.js"></script>\n`;
+writeFileSync(dist + 'app.js', out.outputFiles[0].text);
+writeFileSync(dist + 'index.html', `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n<style>body{margin:0}[hidden]{display:none!important}</style>\n</head>\n<body>\n${hosted}</body>\n</html>\n`);
+console.log('dist/ written');
 console.log('bahrain.html', (body.length / 1e6).toFixed(1), 'MB');

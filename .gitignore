@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.vercel/
+.DS_Store
+bahrain.html
+bahrain.body.html
+data/city/*.b64.txt
+src/*.prev*

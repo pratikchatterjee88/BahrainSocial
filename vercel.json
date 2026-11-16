@@ -1,0 +1,6 @@
+{
+  "framework": null,
+  "installCommand": "npm install",
+  "buildCommand": "node tools/build.mjs",
+  "outputDirectory": "dist"
+}
